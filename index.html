@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מפת תפקודי הקשב - משפחה בקשב (V144)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&display=swap');
+
+        :root {
+            --p-blue: #2563eb;
+            --p-purple: #9333ea;
+            --p-green: #16a34a;
+        }
+
+        body {
+            font-family: 'Assistant', sans-serif;
+            background-color: #fdfdfd;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .glass-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .scale-container {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 25px 10px 10px 10px;
+        }
+
+        .scale-line-bg {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: #f1f5f9;
+            transform: translateY(-50%);
+            z-index: 1;
+            border-radius: 2px;
+        }
+
+        .scale-line-fill {
+            position: absolute;
+            top: 50%;
+            left: auto;
+            right: 0;
+            height: 4px;
+            background: #cbd5e1;
+            transform: translateY(-50%);
+            z-index: 2;
+            transition: width 0.3s ease;
+            border-radius: 2px;
+            width: 0%;
+        }
+
+        .step-circle {
+            position: relative;
+            z-index: 10;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: white;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .step-circle.active {
+            color: #ffffff !important;
+            transform: scale(1.1);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            border-color: transparent !important;
+            background-color: var(--p-blue) !important;
+        }
+
+        .cat-purple .step-circle.active {
+            background-color: var(--p-purple) !important;
+        }
+
+        .cat-green .step-circle.active {
+            background-color: var(--p-green) !important;
+        }
+
+        .category-header {
+            padding: 18px;
+            border-radius: 15px;
+            font-weight: 800;
+            margin-bottom: 25px;
+            font-size: 1.4rem;
+            text-align: center;
+        }
+
+        .function-card {
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .function-title {
+            font-weight: 800;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
+            display: block;
+            text-decoration: underline;
+            color: #475569;
+        }
+
+        .bubble-card {
+            border-radius: 30px;
+            padding: 20px;
+            text-align: center;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid transparent;
+        }
+
+        .bubble-tag {
+            background: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin: 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e2e8f0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .info-icon {
+            background: #e2e8f0;
+            color: #64748b;
+            width: 18px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: bold;
+            font-style: italic;
+        }
+
+        .warning-icon {
+            color: #e11d48;
+            font-size: 1.2rem;
+            margin-right: 4px;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 130%;
+            left: 50%;
+            margin-left: -110px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            font-weight: normal;
+            line-height: 1.4;
+            pointer-events: none;
+        }
+
+        .tooltip-container:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .disclaimer {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        /* Print styles optimized for results */
+        @media print {
+            @page {
+                size: A4;
+                margin: 6mm;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                background-color: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+
+            /* Hide strictly non-print elements */
+            #main-header,
+            #survey-ui-wrapper,
+            #feedback-section,
+            .no-print,
+            .disclaimer,
+            button,
+            #top-anchor>div.flex.flex-col {
+                display: none !important;
+                height: 0 !important;
+                overflow: hidden !important;
+            }
+
+            /* Ensure Results UI is visible and styled */
+            #results-ui {
+                display: block !important;
+                visibility: visible !important;
+                position: relative !important;
+                left: auto !important;
+                top: auto !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+            }
+
+            /* Force Logo Display */
+            #print-logo-container {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                visibility: visible !important;
+                margin-bottom: 2rem;
+                padding-top: 1rem;
+            }
+
+            #print-logo-container img {
+                display: block !important;
+                visibility: visible !important;
+                max-height: 80px;
+                object-fit: contain;
+            }
+
+
+            /* Page Break for Recommendations */
+            /* Page Break for Recommendations */
+            #recommendations-wrapper {
+                page-break-before: always !important;
+                break-before: page !important;
+                display: block !important;
+                clear: both !important;
+                margin-top: 0 !important;
+                padding-top: 2rem !important;
+            }
+
+            /* Clean up Cards for print */
+            .glass-card {
+                box-shadow: none !important;
+                border: 1px solid #e2e8f0;
+                break-inside: avoid;
+                margin-bottom: 1.5rem;
+                background-color: white !important;
+            }
+
+            /* Ensure charts and text are visible */
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            /* Typography adjustments for print */
+            h2,
+            h3,
+            h4 {
+                color: #1e1b4b !important;
+                /* Indigo-950 */
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            p,
+            li {
+                color: #334155 !important;
+            }
+
+            /* FORCE COLORS ON SPECIFIC ELEMENTS */
+            .glass-card {
+                background-color: white !important;
+                border: 1px solid #e2e8f0 !important;
+            }
+
+            .category-header {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: black !important;
+                /* Ensure text is visible on colored bg */
+            }
+
+            /* BRUTE FORCE COLOR PRINTING - "NUCLEAR OPTION" */
+            /* We use box-shadow inset because browsers ALWAYS print shadows/borders, but often skip backgrounds */
+
+            .category-header[style*="cat-blue"],
+            .category-header[style*="#e0f2fe"] {
+                background-color: #e0f2fe !important;
+                box-shadow: inset 0 0 0 1000px #e0f2fe !important;
+                color: #0369a1 !important;
+                border: 1px solid #bfdbfe !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .category-header[style*="cat-purple"],
+            .category-header[style*="#f3e8ff"] {
+                background-color: #f3e8ff !important;
+                box-shadow: inset 0 0 0 1000px #f3e8ff !important;
+                color: #7e22ce !important;
+                border: 1px solid #e9d5ff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .category-header[style*="cat-green"],
+            .category-header[style*="#dcfce7"] {
+                background-color: #dcfce7 !important;
+                box-shadow: inset 0 0 0 1000px #dcfce7 !important;
+                color: #15803d !important;
+                border: 1px solid #bbf7d0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .bubble-tag {
+                border: 1px solid #cbd5e1 !important;
+                background-color: white !important;
+                color: #334155 !important;
+            }
+
+            .bubble-tag span.text-indigo-600 {
+                color: #4f46e5 !important;
+            }
+
+            .bubble-card.bg-blue-50 {
+                background-color: #eff6ff !important;
+                box-shadow: inset 0 0 0 1000px #eff6ff !important;
+                border: 2px solid #bfdbfe !important;
+            }
+
+            .bubble-card span.text-blue-700 {
+                color: #1d4ed8 !important;
+            }
+
+            .bubble-card.bg-purple-50 {
+                background-color: #faf5ff !important;
+                box-shadow: inset 0 0 0 1000px #faf5ff !important;
+                border: 2px solid #e9d5ff !important;
+            }
+
+            .bubble-card span.text-purple-700 {
+                color: #7e22ce !important;
+            }
+
+            .bubble-card.bg-green-50 {
+                background-color: #f0fdf4 !important;
+                box-shadow: inset 0 0 0 1000px #f0fdf4 !important;
+                border: 2px solid #bbf7d0 !important;
+            }
+
+            .bubble-card span.text-green-700 {
+                color: #15803d !important;
+            }
+
+            .step-circle.active {
+                background-color: #2563eb !important;
+                -webkit-box-shadow: inset 0 0 0 1000px #2563eb !important;
+                box-shadow: inset 0 0 0 1000px #2563eb !important;
+                color: white !important;
+                border: 1px solid #2563eb !important;
+            }
+
+            /* Radar Chart Background */
+            #radarChart {
+                background-color: transparent !important;
+            }
+
+            /* Narrative Box */
+            #narrative-box {
+                background-color: #eef2ff !important;
+                /* Indigo-50 */
+                border-right: 4px solid #818cf8 !important;
+            }
+
+            #narrative-box h3 {
+                color: #312e81 !important;
+            }
+
+            /* Force text colors */
+            .text-indigo-900,
+            .text-indigo-950 {
+                color: #1e1b4b !important;
+            }
+
+            .text-slate-700 {
+                color: #334155 !important;
+            }
+
+            .text-slate-600 {
+                color: #475569 !important;
+            }
+        }
+
+        #print-logo-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-10" dir="rtl">
+    <div class="max-w-5xl mx-auto text-right" id="top-anchor">
+        <header id="main-header" class="mb-10 text-center border-b pb-6">
+            <!-- Logo Added -->
+            <img src="logo.png" alt="לוגו" style="max-height: 100px; margin: 0 auto 10px; display: block;">
+
+            <h1 class="text-3xl md:text-5xl font-black text-indigo-950 mb-2 tracking-tighter">מפת תפקודי הקשב</h1>
+            <p class="text-indigo-600 font-bold italic underline">כלי מיפוי ואיתור - פיתוח: צחי גלצר</p>
+        </header>
+
+        <div id="survey-ui-wrapper">
+            <div class="glass-card mb-10 text-center">
+                <p class="text-slate-600 font-bold text-xl mb-4 underline border-b inline-block px-4">הוראות למילוי
+                    המפה:</p>
+                <p class="text-slate-600 font-medium text-lg leading-relaxed">
+                    לפניכם 46 היגדים המתארים תפקודים יומיומיים.<br>
+                    עד כמה קיימת חווית קושי בהיגדים הבאים:<br>
+                    <b>1 (בכלל לא)</b> עד <b>5 (במידה רבה מאוד)</b>.
+                </p>
+            </div>
+            <div id="questions-container" class="space-y-6"></div>
+            <div class="text-center pb-20 mt-10">
+                <button onclick="calculateFinal()"
+                    class="bg-indigo-800 text-white py-8 px-24 rounded-3xl font-black text-3xl hover:bg-black transition shadow-2xl transform active:scale-95">נתח
+                    את המפה שלי 📊</button>
+            </div>
+        </div>
+
+        <div id="results-ui" class="hidden pb-20">
+            <!-- Hidden Logo container for print only -->
+            <div id="print-logo-container">
+                <img src="logo.png" style="max-height: 80px; margin: 0 auto;">
+                <h2 style="font-size: 24px; font-weight: bold; margin-top: 10px;">סיכום מפת תפקודי קשב</h2>
+            </div>
+
+            <div class="glass-card text-center mb-10">
+                <h2 class="text-4xl font-black text-indigo-900 mb-6 italic text-center">הפרופיל הקשבי שלך</h2>
+                <div class="max-w-xl mx-auto"><canvas id="radarChart"></canvas></div>
+            </div>
+            <div id="narrative-box" class="glass-card border-r-indigo-400 bg-indigo-50 mb-10">
+                <h3 class="text-2xl font-black text-indigo-900 mb-4 italic underline">ניתוח הממצאים:</h3>
+                <div id="narrative-content"
+                    class="space-y-6 text-right font-medium text-lg text-slate-700 leading-relaxed"></div>
+            </div>
+
+            <div class="mb-10 text-center">
+                <h3 class="text-2xl font-black text-slate-700 mb-6 italic underline">מוקדי עבודה לפי תחומים:</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bubble-card bg-blue-50 border-blue-200"><span
+                            class="font-black text-blue-700 mb-4 text-xl">🔵 1. רשתות הקשב</span>
+                        <div id="list-1" class="flex flex-wrap justify-center"></div>
+                    </div>
+                    <div class="bubble-card bg-purple-50 border-purple-200"><span
+                            class="font-black text-purple-700 mb-4 text-xl">🟣 2. אימפולסיביות ופעלתנות יתר</span>
+                        <div id="list-2" class="flex flex-wrap justify-center"></div>
+                    </div>
+                    <div class="bubble-card bg-green-50 border-green-200"><span
+                            class="font-black text-green-700 mb-4 text-xl">🟢 3. תפקודים ניהוליים</span>
+                        <div id="list-3" class="flex flex-wrap justify-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="recommendations-wrapper" style="display:none;" class="mb-10 text-right">
+                <h3 class="text-2xl font-black text-slate-700 mb-6 text-center italic underline text-indigo-900">כלי
+                    עבודה מומלצים למיקוד:</h3>
+                <div id="recs-ui" class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 text-right"></div>
+            </div>
+
+            <!-- Print Button Added -->
+            <div class="text-center mb-10 no-print">
+                <button onclick="window.print()"
+                    class="bg-slate-800 text-white px-8 py-3 rounded-full font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2 mx-auto shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2-4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    הדפס דוח מסכם (PDF)
+                </button>
+            </div>
+
+            <div class="glass-card mt-16 bg-slate-50 border-2 border-indigo-200" id="feedback-section">
+                <h3 class="text-3xl font-black text-indigo-900 mb-6 italic text-center underline">שלב סופי: דוח משוב
+                    וסיכום</h3>
+                <div class="space-y-6 text-right">
+                    <div><label class="font-bold block mb-2 text-indigo-950 text-lg">1. האם הפרופיל הקשבי שהוצג תואם
+                            למציאות בעיניך?</label><select id="fb-accuracy">
+                            <option value="תואם מאוד">תואם מאוד (מדויק לגמרי)</option>
+                            <option value="תואם במידה רבה">תואם במידה רבה</option>
+                            <option value="תואם חלקית">תואם חלקית</option>
+                            <option value="לא כל כך תואם">לא כל כך תואם</option>
+                        </select></div>
+                    <div><label class="font-bold block mb-2 text-indigo-950 text-lg">2. האם ההמלצות המעשיות היו
+                            מועילות?</label><select id="fb-recs">
+                            <option value="כן מאוד">כן מאוד</option>
+                            <option value="במידה רבה">במידה רבה</option>
+                            <option value="באופן חלקי">באופן חלקי</option>
+                        </select></div>
+                    <div><label class="font-bold block mb-2 text-indigo-950 text-lg">3. הערות נוספות לסיכום
+                            הממצאים:</label><textarea id="fb-text" rows="4"></textarea></div>
+                    <div class="flex flex-col md:flex-row gap-4 pt-4">
+                        <button onclick="sendViaWhatsApp()"
+                            class="flex-1 bg-green-600 text-white py-5 rounded-2xl font-black text-xl shadow-lg">שלח
+                            בוואטסאפ לצחי 💬</button>
+                        <button onclick="copyFeedbackForEmail()"
+                            class="flex-1 bg-indigo-700 text-white py-5 rounded-2xl font-black text-xl shadow-lg">העתק
+                            נתונים למייל 📥</button>
+                    </div>
+                </div>
+            </div>
+            <div class="flex flex-col items-center gap-6 mt-12 no-print">
+                <button onclick="goBackToEdit()"
+                    class="bg-indigo-100 text-indigo-800 px-12 py-4 rounded-3xl font-black text-xl border-2 border-indigo-200 shadow-md">📝
+                    עריכת הדיווח הנוכחי</button>
+                <button onclick="resetApp()"
+                    class="text-slate-400 font-bold underline text-lg hover:text-rose-500 transition">🔄 מילוי שאלון חדש
+                    (איפוס)</button>
+            </div>
+        </div>
+        <div class="disclaimer text-center mt-10 text-slate-400 text-xs py-10 border-t"><b>הסרת אחריות:</b> כלי זה נועד
+            למטרות מיפוי עצמי בלבד ואינו מהווה אבחון רפואי רשמי.</div>
+    </div>
+
+    <script>
+        const config = [
+            {
+                cat: "1. רשתות הקשב", color: "cat-blue", hStyle: "background: #e0f2fe; color: #0369a1;", funcs: [
+                    {
+                        id: "sust", title: "קשב מתמשך", desc: "היכולת לשמור על קשב לגירוי מטרה לאורך זמן גם אם אינו אטרקטיבי", questions: [{ id: 1, q: "תנודות בולטות בקשב בעת ביצוע מטלה, למשל הכנת שיעורים או קריאת מסמך", recs: [] }, { id: 2, q: "ירידה בערנות לאורך זמן (\"כיבוי סוללה\")", recs: [] }],
+                        allRecs: ["פנייה בשם תוך יצירת קשר עין", "בעת הקניית למידה, שימוש בערוצים שונים כגון, שינוי בקול, כתיבה, הליכה בחדר.", "שיתוף הלומד בתהליך הלמידה דרך שיח, חקר עצמי, עבודה בקבוצות", "מתן אפשרות ליציאה להתאווררות מבוקרת והכוונה לחזרה למשימה.", "מתן אפשרות לאכילה או שתייה בתנאי שאין הפרעה עצמית או לסביבה", "שמירה על משק אנרגיה – איזון מותאם בין זמן ביצוע משימה לזמן מנוחה", "ניטור עצמי של רמת הריכוז באמצעות העלאת מודעות עצמית לכל יציאה מריכוז"]
+                    },
+                    {
+                        id: "sele", title: "קשב סלקטיבי", desc: "היכולת לשמור על קשב לגירוי מטרה תוך התעלמות מגירויים מסיחים", questions: [{ id: 3, q: "מוסחות מרעשים או גירויים חזותיים", recs: [] }, { id: 4, q: "צורך בחזרה על הוראות או קטע קריאה בגלל חוסר מיקוד", recs: [] }, { id: 5, q: "מחשבות מתפרצות שקוטעות רצף של ביצוע משימה", recs: [] }],
+                        allRecs: ["מתן הוראות קצרות וממוקדות המזקקות את העיקר מהטפל", "פנייה לילד בשם תוך יצירת קשר עין", "בעת הקניית למידה, שימוש בערוצים שונים, כגון שינוי בקול, כתיבה, הליכה בחדר", "שמירה על סביבה מופחתת מסיחים שמיעתיים וחזותיים ככל הניתן", "מיקום ישיבה אופטימלי ללמידה, כגון קרוב למורה, רחוק מגורמים מסיחים."]
+                    },
+                    {
+                        id: "orie", title: "הכוון קשב", desc: "היכולת להפניית קשב לגירוי מטרה, ניתוק, והעברת קשב למיקום חדש", questions: [{ id: 6, q: "קושי בהעתקה מהלוח או מעבר בין מסמכים", recs: [] }, { id: 7, q: "קושי לחזור לביצוע משימה ראשונה לאחר מעבר לאחרת", recs: [] }, { id: 8, q: "פספוס הוראות בעת ביצוע משימה מקבילה", recs: [] }],
+                        allRecs: ["פנייה ללומד בשמו ויצירת קשר עין לפני העברת מידע חדש.", "יצירת קוד אישי או סימן מוסכם המאותת על מעבר בין נושאים"]
+                    }
+                ]
+            },
+            {
+                cat: "2. אימפולסיביות ופעלתנות יתר", color: "cat-purple", hStyle: "background: #f3e8ff; color: #7e22ce;", funcs: [
+                    {
+                        id: "impC", title: "אימפולסיביות קוגניטיבית", desc: "סריקה שטחית של מידע ולכן איבוד מידע", questions: [{ id: 9, q: "סריקה שטחית של מידע, למשל דילוג על שורות או מילים בעת קריאה", recs: [] }, { id: 10, q: "הסקת מסקנות מהירה מדי ממידע חלקי", recs: [] }, { id: 11, q: "הבנת הנקרא לקויה למרות שהבנת הנשמע טובה", recs: [] }],
+                        allRecs: ["חזרה על מידע או הוראה בעת הקניית חומר למידה חדש", "חזרות נוספות על מידע חדש בעת למידה", "תיווך למודעות: שימוש בסרגל או אצבע בזמן קריאה למניעת דילוג על שורות", "בקשה מהלומד לחזור על הוראה ששמע"]
+                    },
+                    {
+                        id: "impB", title: "אימפולסיביות התנהגותית", desc: "הקדמת מעשה למחשבה", questions: [{ id: 12, q: "\"הקדמת מעשה למחשבה\" – פעולה ללא עצירה לחשיבה", recs: [] }, { id: 13, q: "התפרצות לדברי אחרים או מתן מענה מוקדם", recs: [] }, { id: 14, q: "מתן תוצר חלקי או תשובה שטחית כדי \"לסיים כבר\"", recs: [] }],
+                        allRecs: ["תיווך לעיכוב תגובה", "הצבת גבולות ברורים, עקביים וחד-משמעיים המגדירים מתי פועלים"]
+                    },
+                    {
+                        id: "impE", title: "אימפולסיביות רגשית", desc: "נטייה לתגובות רגשיות מהירות", questions: [{ id: 15, q: "נטייה לתגובה רגשית מהירה ללא עצירה לחשיבה", recs: [] }, { id: 16, q: "תחושת חרטה לאחר תגובה רגשית", recs: [] }],
+                        allRecs: ["שיקוף רגשי: מתן שם לרגש שעלה ברגע ה\"התפרצות\" כדי להעלותו למודעות.", "שימוש בטכניקות של דמיון מודרך או נשימות להרגעה"]
+                    },
+                    {
+                        id: "hypM", title: "פעלתנות מוטורית", desc: "פעלתנות יתר גופנית", questions: [{ id: 17, q: "חוסר שקט גופני לאורך היום למשל רגל קופצת או תנועתיות מוגברת", recs: [] }, { id: 18, q: "קושי לשבת במקום לאורך זמן ממושך", recs: [] }, { id: 19, q: "הרגשה שהגוף חייב תנועה כדי להישאר \"ער\"", recs: [] }],
+                        allRecs: ["מתן אפשרות לאכילה או שתייה בתנאי שאין הפרעה עצמית או לסביבה", "מתן לגיטימציה להוצאת מרץ מבוקרת, כגון עבודה בעמידה, \"שליחות\" בבית הספר)", "שילוב עזרים מוטוריים כגון שימוש בכרית קוצים מתחת לרגליים"]
+                    },
+                    {
+                        id: "hypR", title: "תגובתיות יתר", desc: "צורך מוגבר במגע וגירוי חושי", questions: [{ id: 20, q: "צורך לגעת בחפצים כדי לשמור על ריכוז", recs: [] }, { id: 21, q: "נטייה לגעת בחפצים של אחרים ללא שליטה", recs: [] }],
+                        allRecs: ["יצירת סביבה סטרילית מחפצים מיותרים המגרים את הצורך במגע", "מתן חלופה מווסתת לצורך במגע, כגון כדור לחץ קטן."]
+                    },
+                    {
+                        id: "hypV", title: "היפר וורבאליות", desc: "דיבור יתר וחוסר בקרה וורבלית", questions: [{ id: 22, q: "דיבור מהיר מאוד ללא עצירות ל\"פסיקים ונקודות\"?", recs: [] }, { id: 23, q: "קושי לעצור את שטף הדיבור גם כשהצד השני איבד עניין", recs: [] }],
+                        allRecs: ["הגדרת מספר המשפטים שמותר להגיד בכל פעם.", "תרגול עצירות יזומות בזמן השיח"]
+                    }
+                ]
+            },
+            {
+                cat: "3. תפקודים ניהוליים", color: "cat-green", hStyle: "background: #dcfce7; color: #15803d;", funcs: [
+                    {
+                        id: "tran", title: "מעברים", desc: "היכולת לנוע בחופשיות בין מצבים, גמישות בפתרון בעיות", questions: [{ id: 24, q: "חוויה של \"הזיזו לי את הגבינה\" – קושי בשינויים בלו\"ז", recs: [] }, { id: 25, q: "קושי במעבר בין מצבים, למשל ערנות לשינה, לקום מהספה למקלחת", recs: [] }, { id: 26, q: "כעס או התנגדות כשתכנית משתנה במפתיע", recs: [] }],
+                        allRecs: ["שימוש בהטרמה קצרת טווח– שיח על משימה או שינוי עתידי", "שימוש בהטרמה ארוכת טווח – הגברת יכולת ההתמודדות במצבי חיים שונים דרך הכנה מנטאלית", "יצירת סדר יום קבוע המפחית את חוסר הוודאות במעברים"]
+                    },
+                    {
+                        id: "init", title: "יזימה", desc: "היכולת להתחיל משימה, העלאת רעיונות ואסטרטגיות", questions: [{ id: 27, q: "קושי להתיישב באופן עצמאי לביצוע מטלה לא אטרקטיבית", recs: [] }, { id: 28, q: "זמן רב עובר מרגע החלטה לפעול ועד תחילת ביצוע", recs: [] }, { id: 29, q: "צורך בתזכורות מרובות מהסביבה כדי להתחיל לפעול", recs: [] }],
+                        allRecs: ["שמירה על משק אנרגיה – איזון מותאם בין זמן ביצוע משימה לזמן מנוחה", "הקניית כלים לניהול זמן ומשימה", "סיוע פיזי להתנעת המשימה, למשל לשבת יחד ב-2 הדקות הראשונות של העבודה.", "פירוק משימות גדולות לצעדים זעירים שקל להתחיל"]
+                    },
+                    {
+                        id: "effo", title: "מאמץ", desc: "היכולת לשמור על תפקוד לאורך זמן", questions: [{ id: 30, q: "קושי בשימור המאמץ לאורך זמן במשימה מתמשכת", recs: [] }, { id: 31, q: "ביצוע לא עקבי של משימות (איכות משתנה)", recs: [] }, { id: 32, q: "התעייפות מנטלית מהירה הדורשת הפסקות רבות", recs: [] }],
+                        allRecs: ["למידה דרך הצלחות – עידוד ומשוב חיובי על התקדמות שלב אחר שלב", "עידוד המאמץ ביחס להישגים קודמים של הילד עצמו ולא ביחס לאחרים"]
+                    },
+                    {
+                        id: "emoR", title: "שליטה רגשית", desc: "היכולת לווסת תגובות רגשיות", questions: [{ id: 33, q: "תגובה רגשית בעוצמה גבוהה (0-100)", recs: [] }, { id: 34, q: "קושי בהרגעה עצמית לאחר הצפה רגשית", recs: [] }],
+                        allRecs: ["להיות עבור הילד \"מיכל\" רגוע ברגעי הצפה", "שאלות לזיהוי עוצמת רגשות דרך שימוש במד עוצמה רגשי (1-10), למשל \"באיזה עוצמה הרגש הזה נחווה אצלך עכשיו\""]
+                    },
+                    {
+                        id: "work", title: "זיכרון עבודה", desc: "היכולת לעקוב אחר הוראות ולעבד מידע בראש", questions: [{ id: 35, q: "קושי למול הוראות מורכבות או מרובות שלבים", recs: [] }, { id: 36, q: "קושי בביצוע סדר פעולות חשבון בראש", recs: [] }, { id: 37, q: "נטייה לשכוח מה שרציתי לעשות אם לאחר הסחת דעת", recs: [] }],
+                        allRecs: ["מתן הוראות קצרות וממוקדות המזקקות את העיקר מהטפל", "פנייה לילד בשם תוך יצירת קשר עין", "שיתוף הלומד בתהליך הלמידה דרך שיח, חקר עצמי, עבודה בקבוצות", "חזרות נוספות על מידע חדש בעת למידה", "שימוש בתרמיזי זיכרון בעת למידה", "שמירה על סביבה מופחתת מסיחים שמיעתיים וחזותיים ככל הניתן", "חלוקת המשימה לטווחי זמן קצרים המותאמים ליכולת הלומד", "שימוש בעזרים חיצוניים, כגון כתיבת הוראות מורכבות על דף או לוח", "פישוט מסרים והימנעות מהוראות מרובות שלבים בבת אחת"]
+                    },
+                    {
+                        id: "plan", title: "תכנון וארגון", desc: "היכולת לעמוד בדרישות של משימה או להתארגן", questions: [{ id: 38, q: "קושי לתכנן סדר פעולות לביצוע עתידי, למשל להכין ציוד נדרש למחר", recs: [] }, { id: 39, q: "קושי בתעדוף, הכל נראה דחוף באותה מידה", recs: [] }, { id: 40, q: "קושי לארגן מסר מילולי בשיחה חופשית", recs: [] }],
+                        allRecs: ["כתיבת סדר הפעולות הנדרש לפני תחילת העבודה.", "סיוע בארגון המסר המילולי דרך שאלות מנחות, כגון \"מה הדבר הראשון שרצית לומר?."]
+                    },
+                    {
+                        id: "envO", title: "ארגון הסביבה", desc: "היכולת לשמור על סדר פיזי וציוד", questions: [{ id: 41, q: "הסביבה הפיזית בבלאגן קבוע, למשל, חדר, שולחן, תיק", recs: [] }, { id: 42, q: "קושי במציאת חפצים נדרשים כשצריך אותם", recs: [] }, { id: 43, q: "הבלאגן הפיזי מפריע להתחיל בביצוע משימה", recs: [] }],
+                        allRecs: ["מתן עזרי התארגנות פיזיים, כגון תיקיות בצבעים, קופסאות ציוד מסומנות)", "הגדרת זמן קבוע במערכת לסידור התיק והמרחב"]
+                    },
+                    {
+                        id: "self", title: "בקרה עצמית", desc: "היכולת לבדוק ביצוע ומודעות להשפעה על האחר", questions: [{ id: 44, q: "קושי בבדיקת המטלה לאיתור שגיאות בסיום", recs: [] }, { id: 45, q: "חוסר מודעות להשפעת ההתנהגות על אחרים בסביבה", recs: [] }, { id: 46, q: "קושי בתיקון עצמי תוך כדי תנועה כשהמצב משתנה", recs: [] }],
+                        allRecs: ["יצירת צ'ק-ליסט אישי לבדיקה חוזרת של המטלה בסיום הביצוע", "פיתוח מודעות לרגשות האחר דרך שיח משקף על סיטואציות חברתיות."]
+                    }
+                ]
+            }
+        ];
+
+        let userRes = {};
+        let myChart = null;
+
+
+        function buildSurvey() {
+            const container = document.getElementById('questions-container');
+            if (!container) return;
+            let fullHtml = ""; let qIdx = 1;
+            config.forEach(c => {
+                fullHtml += `<div class="category-header shadow-sm" style="${c.hStyle}">${c.cat}</div><div class="glass-card">`;
+                c.funcs.forEach(f => {
+                    fullHtml += `<div class="function-card"><span class="function-title">${f.title} <div class="tooltip-container"><span class="info-icon">ⓘ</span><span class="tooltip-text">${f.desc}</span></div></span>`;
+                    f.questions.forEach(qObj => {
+                        const qId = qObj.id; userRes[qId] = userRes[qId] || 1;
+                        fullHtml += `<div class="mb-8 text-right"><label class="block font-semibold mb-2">${qObj.q}</label><div class="scale-container"><div class="scale-line-bg"></div><div class="scale-line-fill" id="fill_${qId}" style="width:${(userRes[qId] - 1) / 4 * 100}%;"></div><div class="flex justify-between w-full relative z-10">${[1, 2, 3, 4, 5].map(n => `<div class="step-circle ${userRes[qId] === n ? 'active' : ''}" id="btn_${qId}_${n}" onclick="updateValue(${qId},${n})">${n}</div>`).join('')}</div></div></div>`;
+                    });
+                    fullHtml += `</div>`;
+                });
+                fullHtml += `</div>`;
+            });
+            container.innerHTML = fullHtml;
+        }
+
+        function updateValue(q, v) { userRes[q] = v; buildSurvey(); }
+
+        function calculateFinal() {
+            const raw = userRes;
+            const s = {}; config.forEach(c => c.funcs.forEach(f => { s[f.id] = f.questions.reduce((a, q) => a + raw[q.id], 0) / f.questions.length; }));
+            const warnings = []; config.forEach(c => c.funcs.forEach(f => { if (f.questions.some(q => userRes[q.id] >= 4) && s[f.id] < 2.2) warnings.push(f.id); }));
+            document.getElementById('survey-ui-wrapper').classList.add('hidden');
+            document.getElementById('results-ui').classList.remove('hidden');
+            window.scrollTo(0, 0);
+            renderResults(s, warnings);
+        }
+
+        function renderResults(s, warnings) {
+            const impMerged = (s.impC + s.impB + s.impE) / 3;
+            const hypMerged = Math.max((s.hypM + s.hypR) / 2, s.hypV);
+            const labels = ['מתמשך', 'הכוון', 'סלקטיבי', 'זכרון עבודה', 'תכנון', 'יזימה', 'מאמץ', 'ארגון סביבה', 'מעברים', 'אימפולסיביות', 'בקרה עצמית', 'פעלתנות', 'שליטה רגשית'];
+            const rData = [s.sust, s.orie, s.sele, s.work, s.plan, s.init, s.effo, s.envO, s.tran, impMerged, s.self, hypMerged, s.emoR];
+            if (myChart) myChart.destroy();
+            myChart = new Chart(document.getElementById('radarChart'), { type: 'radar', data: { labels, datasets: [{ label: 'פרופיל אישי', data: rData, backgroundColor: 'rgba(37, 99, 235, 0.2)', borderColor: '#2563eb', borderWidth: 3 }] }, options: { scales: { r: { min: 0, max: 5 } } } });
+
+            const THRESHOLD = 3.2; // User defined threshold (was 2.2)
+            const getLevel = (v) => v < 2.2 ? "תקין" : (v <= 3.2 ? "קושי קל" : (v <= 4.2 ? "קושי בינוני" : "קושי חמור"));
+
+            // DSM Engine
+            const dsmMapping = { ia: [{ deps: ['impC', 'self'] }, { deps: ['sust', 'effo'] }, { deps: ['sele', 'orie'] }, { deps: ['orie', 'init', 'tran'] }, { deps: ['plan', 'envO'] }, { deps: ['effo', 'init'] }, { deps: ['envO', 'plan'] }, { deps: ['sele'] }, { deps: ['work', 'sust'] }], hi: [{ deps: ['hypM', 'hypR'] }, { deps: ['hypM'] }, { deps: ['hypM'] }, { deps: ['hypR'] }, { deps: ['hypM'] }, { deps: ['hypV'] }, { deps: ['impC', 'impB'] }, { deps: ['impB'] }, { deps: ['impB', 'self'] }] };
+            let iaCount = 0; dsmMapping.ia.forEach(i => { if (i.deps.some(d => s[d] >= 2.3)) iaCount++; }); // DSM uses standard clinical threshold
+            let hiCount = 0; dsmMapping.hi.forEach(i => { if (i.deps.some(d => s[d] >= 2.3)) hiCount++; });
+
+            // New Mutually Exclusive Profile Logic (Per User Request)
+            const isYossi = s.sust >= THRESHOLD && s.sele >= THRESHOLD;
+            const isAsh = impMerged >= THRESHOLD && hypMerged >= THRESHOLD;
+
+            // "Shy", "Red", "Tomorrow" are now BLOCKED if either Yossi OR Ash are present
+            // This enforces the rule: "Only Yossi and Ash can appear together."
+            const isShy = (s.sele >= THRESHOLD && s.work >= THRESHOLD) && !isYossi && !isAsh;
+            const isRed = (s.tran >= THRESHOLD) && !isAsh && !isYossi;
+            const isTomorrow = (s.init >= THRESHOLD) && !isYossi && !isAsh;
+
+            const matches = [];
+            if (isYossi) matches.push({ id: "yossi", n: "יוסי ילד שלי מוצלח", s: (s.sust + s.sele) / 2, t: "מדובר בפרופיל המאופיין במוסחות גבוהה. יוסי הוא דימוי לילד ה'אסטרונאוט' – חכם וסקרן, אך קשבו נוטה להתעופף מהמשימה." });
+            if (isAsh) matches.push({ id: "ash", n: "אש אש על הגולש", s: (impMerged + hypMerged) / 2, t: "פרופיל המאופיין ב'מנוע פנימי' עוצמתי. הקושי המרכזי הוא בוויסות תגובות ופעולות וקושי להתאפק." });
+            if (isRed) matches.push({ id: "red", n: "נגעתי באדום", s: s.tran, t: "פרופיל המאופיין בקושי במעברים ובשינויים. כל שינוי מעורר תסכול ונוקשות חשיבתית." });
+            if (isShy) matches.push({ id: "shy", n: "לא הביישן למד", s: (s.sele + s.work) / 2, t: "פרופיל 'שקט' שבו הקושי אינו מפריע לסביבה אך הילד קורס תחת עומס מידע." });
+            if (isTomorrow) matches.push({ id: "tmrw", n: "ילדי המחר", s: s.init, t: "פרופיל המאופיין בדחיינות וקושי ב'סטרטר'. הקושי הוא להתניע משימות ולארגן סדר פעולות." });
+
+            // Sort matches by severity (optional, but good for display)
+            matches.sort((a, b) => b.s - a.s);
+            const narrativeBox = document.getElementById('narrative-content');
+            let html = "";
+            if (iaCount >= 6 || hiCount >= 6) {
+                html += `<div class="bg-amber-50 border-r-4 border-amber-500 p-4 mb-6"><b class="underline">בדיקת DSM-5:</b> מניתוח הממצאים עולה עדות לקיום קשיים ב-${iaCount} מתוך 9 קריטריונים של קשב ו-${hiCount} מתוך 9 קריטריונים של פעלתנות. מומלץ להיוועץ באיש מקצוע מומחה לאבחון קשב (רופא או פסיכולוג מומחה) לצורך השלמת האבחנה הקלינית הרשמית.</div>`;
+            }
+            if (matches.some(m => m.id === "yossi") && matches.some(m => m.id === "ash")) html += `<div class="bg-indigo-600 text-white p-4 rounded-xl mb-6 font-bold shadow-lg text-center">ניכר כי מדובר בפרופיל משולב (Combined).</div>`;
+            if (matches.length > 0) html += matches.map(m => `<div><b class="text-indigo-950 font-bold underline text-xl">${m.n} (${getLevel(m.s)}):</b><p class="mt-2 text-slate-700 leading-relaxed">${m.t}</p></div>`).join('<hr class="my-6 border-indigo-100">');
+            else html += Object.keys(s).some(k => s[k] >= ENTRY || warnings.length > 0) ? "<p class='font-bold text-indigo-800 text-lg text-center'>לא נמצאה התאמה לפרופיל קשיים ספציפי, אך עלו קשיים נקודתיים המצריכים תשומת לב והתייחסות להמלצות.</p>" : "<p class='text-center text-green-600 font-bold text-xl py-4'>התפקודים נצפים בטווח התקין.</p>";
+            narrativeBox.innerHTML = html;
+
+            const rUi = document.getElementById('recs-ui'); rUi.innerHTML = ""; let anyRecs = false;
+            [1, 2, 3].forEach(domain => {
+                const list = document.getElementById('list-' + domain); list.innerHTML = ""; let hasDomainDiff = false;
+                config[domain - 1].funcs.forEach(f => {
+                    const warning = config.some(c => c.funcs.some(func => func.id === f.id && func.questions.some(q => userRes[q.id] >= 4)));
+                    // Fix: Define core functions for each profile type to prevent alerts on core symptoms
+                    const profileCores = {
+                        yossi: ['sust', 'sele'],
+                        ash: ['impB', 'impC', 'impE', 'hypM', 'hypR', 'hypV'], // All impulsive/hyper functions
+                        red: ['tran'],
+                        shy: ['sele', 'work'],
+                        tmrw: ['init']
+                    };
+
+                    const isProfileCore = matches.some(m => profileCores[m.id] && profileCores[m.id].includes(f.id));
+
+                    if (s[f.id] >= THRESHOLD || (warning && !isProfileCore)) {
+                        hasDomainDiff = true; anyRecs = true;
+                        const showWarn = warning && s[f.id] < THRESHOLD;
+                        list.innerHTML += `<div class="bubble-tag"><span>${f.title}</span> ${showWarn ? `<div class="tooltip-container ml-1"><span class="warning-icon">⚠️</span><span class="tooltip-text">נצפה קושי משמעותי בהיגד ספציפי, למרות שהממוצע תקין.</span></div>` : ''} <span class="text-indigo-600 font-bold">(${getLevel(s[f.id])})</span></div>`;
+
+                        // New Recommendation Logic: De-duplication + Function-level Recs
+                        const uniqueRecs = new Set();
+                        f.questions.forEach(q => {
+                            if (userRes[q.id] >= 3) {
+                                // Add function-level recs if they exist
+                                if (f.allRecs) f.allRecs.forEach(r => uniqueRecs.add(r));
+                                // Add question-specific recs if they exist (backward compatibility)
+                                if (q.recs) q.recs.forEach(r => uniqueRecs.add(r));
+                            }
+                        });
+
+                        let specRecs = "";
+                        uniqueRecs.forEach(r => specRecs += `<li>${r}</li>`);
+
+                        if (specRecs) rUi.innerHTML += `<div class="bg-white p-6 rounded-3xl border-t-8 border-indigo-200 shadow-sm text-right"><h4 class="font-black text-xl text-slate-700 mb-4 underline">${f.title}:</h4><ul class="list-disc pr-5 space-y-2 text-sm text-slate-700">${specRecs}</ul></div>`;
+                    }
+                });
+                if (!hasDomainDiff) list.innerHTML = `<span style="color: #16a34a; font-size: 3rem; font-weight: 900; display: block; margin-top: 0.5rem;">✓</span>`;
+            });
+            document.getElementById('recommendations-wrapper').style.display = anyRecs ? "block" : "none";
+        }
+
+        function resetApp() { window.scrollTo(0, 0); setTimeout(() => location.reload(), 100); }
+        function goBackToEdit() { document.getElementById('results-ui').classList.add('hidden'); document.getElementById('survey-ui-wrapper').classList.remove('hidden'); window.scrollTo(0, 0); }
+        function getFeedbackData() {
+            const acc = document.getElementById('fb-accuracy').value;
+            const recs = document.getElementById('fb-recs').value;
+            const text = document.getElementById('fb-text').value;
+            return `משוב למפת קשב:\n1. דיוק הפרופיל: ${acc}\n2. יעילות המלצות: ${recs}\n3. הערות: ${text}`;
+        }
+
+        function sendViaWhatsApp() {
+            const msg = getFeedbackData();
+            window.open(`https://api.whatsapp.com/send?phone=972536823221&text=${encodeURIComponent(msg)}`);
+        }
+
+        function copyFeedbackForEmail() {
+            const msg = getFeedbackData();
+            navigator.clipboard.writeText(msg).then(() => {
+                alert("הנתונים הועתקו בהצלחה! כעת ניתן לפתוח את המייל, להדביק (Paste) ולשלוח.");
+            }).catch(err => {
+                alert("שגיאה בהעתקה, אנא נסה לסמן ולהעתיק ידנית.");
+                console.error(err);
+            });
+        }
+
+        buildSurvey();
+    </script>
+</body>
+
+</html>
